@@ -12,6 +12,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.os.StrictMode;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
@@ -30,12 +31,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private DownloadManager downloadManager;
     private long musicDownloadId,imageDownloadId;
     private Button btnImage, btnMusic, btnStatus, btnCancel;
+    private String downloadFilePath = "";
     private static final int IMAGE = 0, MUSIC = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         btnImage    =  (Button)findViewById(R.id.btnImage);
         btnMusic    =  (Button)findViewById(R.id.btnMusic);
         btnStatus   =  (Button)findViewById(R.id.btnCheckStatus);
@@ -46,6 +49,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnCancel.setOnClickListener(this);
         btnStatus.setEnabled(false);
         btnCancel.setEnabled(false);
+
         IntentFilter intentFilter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
         registerReceiver(downloadReceiver,intentFilter);
 
@@ -53,6 +57,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         Manifest.permission.READ_EXTERNAL_STORAGE,
                         Manifest.permission.WRITE_EXTERNAL_STORAGE },100);
 
+        StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
+        StrictMode.setVmPolicy(builder.build());
     }
 
     private long DownloadData (Uri uri, View view){
@@ -65,12 +71,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             btnImage.setEnabled(false);
             request.setTitle("Image Download");
             request.setDescription("Descargando Imagen");
-            request.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS,"Test.jpg");
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,"Test.jpg");
         }else if(view.getId() == R.id.btnMusic){
             btnMusic.setEnabled(false);
             request.setTitle("Music Download");
             request.setDescription("Descargando Track");
-            request.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS,"Test.mp3");
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,"Test.mp3");
         }
 
         btnStatus.setEnabled(true);
@@ -108,7 +114,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         int reason = cursor.getInt(columnReason);
 
         //int filenameIndex = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
-        String downloadFilePath = null;
         String downloadFileLocalUri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
         if (downloadFileLocalUri != null) {
             File mFile = new File(Uri.parse(downloadFileLocalUri).getPath());
@@ -224,15 +229,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 notifyID = 1;
                 btnImage.setEnabled(true);
 
+                checkDownloadStatus(imageDownloadId,IMAGE);
+
+                //File file = new File("storage/emulated/0/Download/","TestGama.jpg");
+                File file = new File(downloadFilePath);
                 Intent i = new Intent();
                 i.setAction(android.content.Intent.ACTION_VIEW);
-                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"Test.jpg");
-
-                Uri fileArchive = FileProvider.getUriForFile(MainActivity.this,
-                        BuildConfig.APPLICATION_ID + ".provider", file);
-
-                i.setDataAndType(fileArchive, "image/*");
-
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                i.setDataAndType(Uri.fromFile(file), "image/*");
+                /*Uri fileArchive = FileProvider.getUriForFile(MainActivity.this,
+                        BuildConfig.APPLICATION_ID + ".provider", file);*/
+                //i.setDataAndType(fileArchive, "image/*");
                 try{
                     pIntent = PendingIntent.getActivity(getApplicationContext(), 0, i, 0);
                 }catch (Exception e){
@@ -245,10 +252,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         .setTicker("DESCARGA -- DESCARGA")
                         .setContentIntent(pIntent)
                         .setAutoCancel(true);
-                /*Toast toast = Toast.makeText(MainActivity.this,
-                        "Image Download Complete", Toast.LENGTH_LONG);
-                toast.setGravity(Gravity.TOP, 25, 400);
-                toast.show();*/
             } else if(referenceId == musicDownloadId) {
                 notifyID = 2;
                 btnMusic.setEnabled(true);
@@ -257,10 +260,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                         .setSubText("Subtexto")
                         .setTicker("DESCARGA -- DESCARGA")
                         .setAutoCancel(true);
-                /*Toast toast = Toast.makeText(MainActivity.this,
-                        "Music Download Complete", Toast.LENGTH_LONG);
-                toast.setGravity(Gravity.TOP, 25, 400);
-                toast.show();*/
             }
             NotificationManager mNotificationManager =
                     (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
@@ -287,7 +286,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 downloadManager.remove(imageDownloadId);
                 downloadManager.remove(musicDownloadId);
                 break;
-
         }
     }
 }
