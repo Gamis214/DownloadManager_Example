@@ -1,7 +1,9 @@
 package com.example.s_hernandezivah.downloadmanager_example;
 
+import android.Manifest;
 import android.app.DownloadManager;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -10,6 +12,8 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Environment;
 import android.os.Handler;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.app.NotificationCompat;
@@ -44,6 +48,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnCancel.setEnabled(false);
         IntentFilter intentFilter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
         registerReceiver(downloadReceiver,intentFilter);
+
+        ActivityCompat.requestPermissions(this, new String[]{
+                        Manifest.permission.READ_EXTERNAL_STORAGE,
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE },100);
 
     }
 
@@ -199,11 +207,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private BroadcastReceiver downloadReceiver = new BroadcastReceiver() {
+
         @Override
         public void onReceive(Context context, Intent intent) {
 
             long referenceId = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
             int notifyID = 0;
+            PendingIntent pIntent = null;
 
             NotificationCompat.Builder builderNotification =
                     new NotificationCompat.Builder(MainActivity.this);
@@ -213,10 +223,27 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             if(referenceId == imageDownloadId) {
                 notifyID = 1;
                 btnImage.setEnabled(true);
+
+                Intent i = new Intent();
+                i.setAction(android.content.Intent.ACTION_VIEW);
+                File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),"Test.jpg");
+
+                Uri fileArchive = FileProvider.getUriForFile(MainActivity.this,
+                        BuildConfig.APPLICATION_ID + ".provider", file);
+
+                i.setDataAndType(fileArchive, "image/*");
+
+                try{
+                    pIntent = PendingIntent.getActivity(getApplicationContext(), 0, i, 0);
+                }catch (Exception e){
+                    e.printStackTrace();
+                }
+
                 builderNotification.setContentTitle("Imagen descargada")
                         .setContentText("Presiona para abrir la imagen")
                         .setSubText("Subtexto")
                         .setTicker("DESCARGA -- DESCARGA")
+                        .setContentIntent(pIntent)
                         .setAutoCancel(true);
                 /*Toast toast = Toast.makeText(MainActivity.this,
                         "Image Download Complete", Toast.LENGTH_LONG);
