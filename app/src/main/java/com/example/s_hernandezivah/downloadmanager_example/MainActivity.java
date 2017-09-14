@@ -287,6 +287,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 downloadManager.remove(imageDownloadId);
                 downloadManager.remove(musicDownloadId);
                 break;
+
         }
     }
 }
