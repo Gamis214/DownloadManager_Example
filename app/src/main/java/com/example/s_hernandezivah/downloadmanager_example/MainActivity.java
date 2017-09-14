@@ -27,11 +27,12 @@ import java.io.File;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener{
 
-    private Uri image_uri,music_uri;
-    private DownloadManager downloadManager;
     private long musicDownloadId,imageDownloadId;
+    private DownloadManager downloadManager;
     private Button btnImage, btnMusic, btnStatus, btnCancel;
     private String downloadFilePath = "";
+    private static final String URL_IMAGE = "https://www.androidtutorialpoint.com/wp-content/uploads/2016/09/Beauty.jpg";
+    private static final String URL_MUSIC = "https://www.androidtutorialpoint.com/wp-content/uploads/2016/09/AndroidDownloadManager.mp3";
     private static final int IMAGE = 0, MUSIC = 1;
 
     @Override
@@ -113,7 +114,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         int columnReason = cursor.getColumnIndex(DownloadManager.COLUMN_REASON);
         int reason = cursor.getInt(columnReason);
 
-        //int filenameIndex = cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI);
         String downloadFileLocalUri = cursor.getString(cursor.getColumnIndex(DownloadManager.COLUMN_LOCAL_URI));
         if (downloadFileLocalUri != null) {
             File mFile = new File(Uri.parse(downloadFileLocalUri).getPath());
@@ -190,14 +190,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Toast toast = Toast.makeText(MainActivity.this,
                     "Music Download Status:" + "\n" + statusText + "\n" +
                             reasonText,
-                    Toast.LENGTH_LONG);
+                    Toast.LENGTH_SHORT);
             toast.setGravity(Gravity.TOP, 25, 400);
             toast.show();
         }else{
             Toast toast = Toast.makeText(MainActivity.this,
                     "Image Download Status:"+ "\n" + statusText + "\n" +
                             reasonText,
-                    Toast.LENGTH_LONG);
+                    Toast.LENGTH_SHORT);
             toast.setGravity(Gravity.TOP, 25, 400);
             toast.show();
 
@@ -240,27 +240,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 /*Uri fileArchive = FileProvider.getUriForFile(MainActivity.this,
                         BuildConfig.APPLICATION_ID + ".provider", file);*/
                 //i.setDataAndType(fileArchive, "image/*");
-                try{
-                    pIntent = PendingIntent.getActivity(getApplicationContext(), 0, i, 0);
-                }catch (Exception e){
-                    e.printStackTrace();
-                }
+
+                pIntent = PendingIntent.getActivity(getApplicationContext(), 0, i, 0);
 
                 builderNotification.setContentTitle("Imagen descargada")
                         .setContentText("Presiona para abrir la imagen")
                         .setSubText("Subtexto")
-                        .setTicker("DESCARGA -- DESCARGA")
                         .setContentIntent(pIntent)
                         .setAutoCancel(true);
+
             } else if(referenceId == musicDownloadId) {
                 notifyID = 2;
                 btnMusic.setEnabled(true);
+
+                checkDownloadStatus(musicDownloadId,MUSIC);
+
+                File file = new File(downloadFilePath);
+                Intent i = new Intent();
+                i.setAction(android.content.Intent.ACTION_VIEW);
+                i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                i.setDataAndType(Uri.fromFile(file), "audio/*");
+
+                pIntent = PendingIntent.getActivity(getApplicationContext(), 0, i, 0);
+
                 builderNotification.setContentTitle("Track descargado")
                         .setContentText("Presiona para abrir el track")
                         .setSubText("Subtexto")
-                        .setTicker("DESCARGA -- DESCARGA")
+                        .setContentIntent(pIntent)
                         .setAutoCancel(true);
             }
+
             NotificationManager mNotificationManager =
                     (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             mNotificationManager.notify(notifyID,builderNotification.build());
@@ -271,11 +280,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onClick(View v) {
         switch (v.getId()){
             case R.id.btnImage:
-                image_uri = Uri.parse("https://www.androidtutorialpoint.com/wp-content/uploads/2016/09/Beauty.jpg");
+                Uri image_uri = Uri.parse(URL_IMAGE);
                 imageDownloadId = DownloadData(image_uri,v);
                 break;
             case R.id.btnMusic:
-                music_uri = Uri.parse("https://www.androidtutorialpoint.com/wp-content/uploads/2016/09/AndroidDownloadManager.mp3");
+                Uri music_uri = Uri.parse(URL_MUSIC);
                 musicDownloadId = DownloadData(music_uri,v);
                 break;
             case R.id.btnCheckStatus:
