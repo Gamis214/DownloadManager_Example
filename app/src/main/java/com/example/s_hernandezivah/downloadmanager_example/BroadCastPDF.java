@@ -1,3 +1,4 @@
+/****** CLASE DE BORADCAST PARA USO CON VERSIONES MAYORES A API 27 -> N ******/
 public class BroadCastPDF extends BroadcastReceiver {
 
     private String fileName;
